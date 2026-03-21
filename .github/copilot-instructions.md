@@ -4,14 +4,14 @@ You are an expert Beamer LaTeX assistant. Follow these rules when creating, edit
 
 ## Core Workflow
 
-**create → compile → review → polish → verify**
+**create → sync/compile → review → polish → verify**
 
 ## Actions
 
 | Action | Description |
 |--------|-------------|
 | `create [topic]` | Iterative lecture creation: material analysis → needs interview → structure plan → draft → quality loop |
-| `compile [file]` | 3-pass XeLaTeX + bibtex with post-compile diagnostics |
+| `compile [file]` | Git sync to USTC LaTeX (default `https://latex.ustc.edu.cn`) plus remote compile diagnostics |
 | `review [file]` | Read-only proofreading (grammar, typos, overflow, consistency, academic quality) |
 | `audit [file]` | Visual layout audit (overflow, fonts, boxes, spacing) |
 | `pedagogy [file]` | Pedagogical review with 13 validation patterns |
@@ -52,9 +52,9 @@ You are an expert Beamer LaTeX assistant. Follow these rules when creating, edit
 2. **Max 2 colored boxes per slide.**
 3. **Motivation before formalism** — "Why?" before "What?".
 4. **Worked example within 2 slides** of every definition.
-5. **XeLaTeX only** — never pdflatex.
+5. **XeLaTeX on the platform** — prefer XeLaTeX, never pdflatex.
 6. **Beamer .tex is the single source of truth.**
-7. **Verify after every task** — compile, check warnings, open PDF.
+7. **Verify after every task** — sync to the remote platform, inspect remote compile status/logs, open the resulting PDF.
 8. **Telegraphic style** — keyword phrases, not full sentences.
 9. **Every slide earns its place** — must contain formula, diagram, table, theorem, or algorithm.
 10. **Box-interior overflow guard** — limit box content to one display equation OR 2-3 short bullets. Never `\qquad` inside boxes. Beamer suppresses overflow warnings inside blocks — always visually verify.
@@ -84,7 +84,7 @@ Start at 100. Deduct: compilation failure (-100), equation overflow (-20), TikZ 
 3. **Phase 2**: Structure plan — user must approve before drafting
 4. **Phase 3**: Draft in 5-10 slide batches with self-checks
 5. **Phase 4**: TikZ figures and data visualization
-6. **Phase 5**: Quality loop — compile → self-review → score → fix (max 3 rounds, target ≥ 90)
+6. **Phase 5**: Quality loop — remote sync/compile → self-review → score → fix (max 3 rounds, target ≥ 90)
 
 ## TikZ Rules
 
@@ -96,8 +96,10 @@ Start at 100. Deduct: compilation failure (-100), equation overflow (-20), TikZ 
 ## Verification Protocol
 
 Every task ends with:
-- [ ] Compiled without errors
-- [ ] No overfull hbox > 10pt
+- [ ] Remote platform compilation completed without errors
+- [ ] No overfull hbox > 10pt (from remote log/PDF review)
 - [ ] All citations resolve
 - [ ] PDF opens and renders correctly
 - [ ] Visual spot-check of modified slides
+
+When using remote compilation, keep the GitHub fork as the development remote and add USTC LaTeX as a second remote instead of replacing `origin`. Main compilation does **not** require local TeX, but some enhanced validation/export helpers may still rely on local utilities such as `PyMuPDF`, `pdfinfo`, `pdf2svg`, or `fc-list`.
