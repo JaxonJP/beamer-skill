@@ -227,7 +227,7 @@ Always set explicit `width` and `height` to prevent overflow.
 ## Phase 5: Quality Loop (MANDATORY — iterative)
 
 ```
-┌─→ 5a. Compile (2-pass XeLaTeX)
+┌─→ 5a. Sync + Remote Compile (USTC LaTeX)
 │   5b. Self-Review (structure + content + visual)
 │   5c. Score (apply rubric)
 │   5d. Fix all issues found
@@ -235,10 +235,10 @@ Always set explicit `width` and `height` to prevent overflow.
     If score ≥ 90 or round = 3: report to user
 ```
 
-### 5a. Compilation
-- 2-pass XeLaTeX
-- Check: errors, overfull hbox, undefined references
-- Open PDF for visual inspection
+### 5a. Remote compilation
+- Commit and push the current batch to the platform Git remote
+- Compile on USTC LaTeX with XeLaTeX
+- Check: remote errors, overfull hbox, undefined references, and the rendered PDF
 
 ### 5b. Self-Review
 
@@ -273,12 +273,12 @@ Start at 100, deduct per issue (see main AGENTS.md Section 3).
 
 ### 5d. Fix
 
-Fix all critical and major issues. Re-compile. Max 3 rounds.
+Fix all critical and major issues. Re-sync and re-compile remotely. Max 3 rounds.
 
 ### Post-Creation Checklist (final gate)
 
 ```
-[ ] Compiles without errors
+[ ] Remote platform compilation completed without errors
 [ ] No overfull hbox > 10pt
 [ ] All citations resolve
 [ ] Score ≥ 90
