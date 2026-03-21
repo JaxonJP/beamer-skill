@@ -189,10 +189,7 @@ PDF-based visual verification. Converts compiled PDF to images, then reviews eac
 
 ### Workflow
 
-1. **Compile** (if not already compiled):
-   ```bash
-   xelatex -interaction=nonstopmode FILE.tex
-   ```
+1. **Obtain the latest compiled PDF** from the remote platform (USTC LaTeX by default).
 
 2. **Convert PDF to images** using PyMuPDF:
    ```python

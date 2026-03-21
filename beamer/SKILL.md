@@ -16,7 +16,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent", "AskUs
 # Beamer Slide Workflow
 
 Universal skill for academic Beamer presentations. Full lifecycle:
-create → compile → review → polish → verify.
+create → sync/compile → review → polish → verify.
 
 ---
 
@@ -76,9 +76,9 @@ When creating new slides, use this as the default preamble unless the user has a
 2. **Max 2 colored boxes per slide** — more dilutes emphasis. Demote transitional remarks to plain italic.
 3. **Motivation before formalism** — every concept starts with "Why?" before "What?".
 4. **Worked example within 2 slides** of every definition.
-5. **XeLaTeX only** — never pdflatex.
+5. **XeLaTeX on the platform** — prefer XeLaTeX, never pdflatex.
 6. **Beamer .tex is the single source of truth** — TikZ diagrams, content, notation all originate here.
-7. **Verify after every task** — compile, check warnings, open PDF.
+7. **Verify after every task** — sync to the remote platform, inspect the remote compile log/status, open the resulting PDF.
 8. **Telegraphic style** — keyword phrases, not full sentences. Slides are speaker prompts, not manuscripts. Exception: framing sentences that set up a definition or transition. Each bullet item should be ≤2 lines (~15 words) — if longer, split into sub-items or rewrite more concisely.
 9. **Every slide earns its place** — each slide must contain at least one substantive element (formula, diagram, table, theorem, or algorithm). A slide with only 3 short bullets and nothing else must be merged or enriched.
 10. **Box-interior overflow guard** — `alertblock`, `exampleblock`, and `block` environments add internal padding (~15% less width, ~12-16pt extra height for title bar + vertical padding). Content that fits on a bare slide can overflow inside a box in **both directions**. Rules:
@@ -110,22 +110,31 @@ Parse `$ARGUMENTS` to determine which action to run. If no action specified, ask
 
 ### 2.1 `compile [file]`
 
-3-pass XeLaTeX + bibtex for full citation resolution.
+Default workflow: keep the user's **GitHub fork** as the source repo, add **USTC LaTeX** (`https://latex.ustc.edu.cn`) as a second remote, and let the platform perform the XeLaTeX build. If the user does not specify another host, assume USTC LaTeX.
 
 ```bash
-# Adapt TEXINPUTS/BIBINPUTS to your project's preamble/bib locations
-xelatex -interaction=nonstopmode FILE.tex
-bibtex FILE
-xelatex -interaction=nonstopmode FILE.tex
-xelatex -interaction=nonstopmode FILE.tex
+# once per local repo
+# keep the GitHub fork as origin
+git remote add ustc-latex <USTC_PROJECT_GIT_URL>
+
+# for each update (push the current commit to both remotes as needed)
+git push origin HEAD
+git push ustc-latex HEAD
 ```
 
-Post-compile checks:
-- Grep log for `Overfull \\hbox` warnings (count and locations)
-- Grep for `Undefined control sequence` or `undefined citations`
-- Grep for `Label(s) may have changed`
-- Open PDF for visual verification
-- Report: success/failure, overfull count, undefined items, page count
+Rules:
+- Treat GitHub and USTC LaTeX as separate remotes; do not replace the user's fork remote.
+- Ask for the project Git URL and Git token if missing.
+- Never require local TeX installation.
+- Do not use `git push --force` / `git pull --force`. If the remote Git state is broken, re-clone.
+- Tell the user to confirm the project compiler is **XeLaTeX** on the platform.
+
+Post-sync checks:
+- Confirm push succeeded
+- Keep the user informed whether GitHub fork push and USTC push both succeeded
+- Ask the user to inspect the remote compile log/PDF on the platform, or provide the exported PDF/log for diagnosis
+- If a PDF is available locally, open it for visual verification
+- Report: sync success/failure, remote compile status (if known), and next action
 
 ### 2.2 `create [topic]`
 
@@ -301,9 +310,9 @@ Every slide must have a clear **takeaway** — the one thing the audience should
 ##### 3d. Batch Workflow
 
 - Work in batches of 5-10 slides, following the approved structure
-- After each batch, **compile** (`xelatex -interaction=nonstopmode`) to catch errors early — fixing 2 issues in a 10-slide batch is far cheaper than fixing 12 issues in a 40-slide deck at Phase 5
+- After each batch, **sync to USTC LaTeX and trigger a remote compile** — fixing 2 issues in a 10-slide batch is far cheaper than fixing 12 issues in a 40-slide deck at Phase 5
 - After each batch, self-check: notation consistency, density constraints, motivation-before-formalism
-- Continue to next batch only after current batch compiles cleanly and passes self-check
+- Continue to next batch only after the current batch syncs cleanly and the remote compile/PDF looks correct
 
 ##### 3e. Table Best Practices
 
@@ -404,7 +413,7 @@ Use `pgfplots` whenever plotting numerical data. It handles axes, legends, scali
 After completing the full draft, enter the quality loop:
 
 ```
-┌─→ 5a. Compile (2-pass XeLaTeX)
+┌─→ 5a. Sync + Remote Compile (USTC LaTeX)
 │   5b. Self-Review (structure + content + visual)
 │   5c. Score (apply rubric)
 │   5d. Fix all issues found
@@ -412,10 +421,10 @@ After completing the full draft, enter the quality loop:
     If score ≥ 90 or round = 3: report to user
 ```
 
-**5a. Compilation**
-- 2-pass XeLaTeX compilation (bibtex not needed here — already resolved in Phase 3 batch compiles)
-- Check: errors, overfull hbox, undefined references
-- Open PDF for visual inspection
+**5a. Remote compilation**
+- Commit and push the latest slide changes to the platform Git remote
+- Let the platform compile with XeLaTeX
+- Check: remote errors, overfull hbox, undefined references, and rendered PDF
 
 **5b. Self-Review** — re-read the .tex and verify:
 
@@ -474,11 +483,11 @@ Start at 100. Deduct:
 - **80-89**: Acceptable. Fix remaining majors if possible, report with caveats.
 - **< 80**: Must fix. Loop back and resolve critical/major issues.
 
-**5d. Fix** — fix all critical and major issues. Re-compile. If score improves to ≥ 90, exit loop. Max 3 rounds to avoid infinite loops.
+**5d. Fix** — fix all critical and major issues. Re-sync and re-compile remotely. If score improves to ≥ 90, exit loop. Max 3 rounds to avoid infinite loops.
 
 #### Post-Creation Checklist (final gate)
 ```
-[ ] Compiles without errors
+[ ] Remote platform compilation completed without errors
 [ ] No overfull hbox > 10pt
 [ ] All citations resolve
 [ ] Score ≥ 90
@@ -609,11 +618,11 @@ TikZ diagram review and extraction.
   1. Estimate label text width vs. arrow length (`right=` gap). If the label is wider than ~80% of the gap, **increase the gap** or **shrink the label font** (`\scriptsize` / `\tiny`).
   2. Use `above=4pt` (or more) instead of bare `above` to add vertical clearance between label and box border.
   3. For flow diagrams with 3+ boxes: total width = (N × box width) + ((N-1) × gap). Must stay ≤ 14cm for 16:9 beamer. Adjust box `text width` and gap together.
-  4. When in doubt, compile and visually verify that no label overlaps any box border.
+  4. When in doubt, sync, re-compile remotely, and visually verify that no label overlaps any box border.
 
 **Extraction to SVG (for web/Quarto use):**
 ```bash
-xelatex -interaction=nonstopmode extract_tikz.tex
+# Compile extract_tikz.tex on USTC LaTeX (or another Overleaf-compatible remote), then download extract_tikz.pdf
 PAGES=$(pdfinfo extract_tikz.pdf | grep "Pages:" | awk '{print $2}')
 for i in $(seq 1 $PAGES); do
   idx=$(printf "%02d" $((i-1)))
@@ -715,7 +724,7 @@ When a TikZ diagram has ≥ 5 nodes or involves plotted curves, run an iterative
 │   Step 3: Classify — CRITICAL (overlap, wrong semantics, geometric error),
 │                       MAJOR (poor spacing, readability), MINOR (aesthetic)
 │   Step 4: Fix all CRITICAL and MAJOR issues
-│   Step 5: Re-compile and visually verify in PDF
+│   Step 5: Re-sync, re-compile remotely, and visually verify in PDF
 └── If CRITICAL or MAJOR remain and round < 3: loop back to Step 1
     If all clear or round = 3: declare APPROVED or report remaining issues
 ```
@@ -786,10 +795,7 @@ Challenge slide design with 5-7 specific pedagogical questions.
 
 **Workflow:**
 
-1. **Compile** (if not already compiled):
-   ```bash
-   xelatex -interaction=nonstopmode FILE.tex
-   ```
+1. **Obtain the latest compiled PDF** from the remote platform (download it from USTC LaTeX if needed).
 
 2. **Convert PDF to images** using PyMuPDF:
    ```python
@@ -974,7 +980,7 @@ Use when the user wants to reuse figures from an existing paper (their own or a 
 **Every task ends with verification.** Non-negotiable.
 
 ```
-[ ] Compiled without errors (xelatex exit code 0)
+[ ] Remote platform compilation completed without errors
 [ ] No overfull hbox > 10pt
 [ ] All citations resolve
 [ ] PDF opens and renders correctly
@@ -1012,7 +1018,7 @@ Severity: CRITICAL = math wrong. MAJOR = missing assumption. MINOR = could be cl
 4. Use `\small` on one element (not the whole slide)
 5. Last resort: `\footnotesize` (never `\tiny`)
 
-**Error:** `Font "XXX" not found` with XeLaTeX
+**Error:** `Font "XXX" not found` on the platform XeLaTeX build
 **Cause:** System font not installed, or wrong font name.
 **Fix:** Use `fc-list | grep "FontName"` to check available fonts. Fall back to default Latin Modern if custom font unavailable.
 
