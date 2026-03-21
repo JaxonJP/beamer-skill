@@ -9,6 +9,7 @@ This document contains the complete `create [topic]` workflow for the Beamer ski
 **Read first, ask later.** Must understand the content before asking meaningful questions.
 
 - Read the full paper/materials thoroughly
+- Prioritize local PDF analysis before slide drafting when source PDFs are provided
 - Extract: core contribution, key techniques, main theorems, comparison with prior work
 - Map notation conventions
 - Identify the paper's logical structure and which parts are slide-worthy

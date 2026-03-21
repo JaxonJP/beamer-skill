@@ -102,4 +102,4 @@ Every task ends with:
 - [ ] PDF opens and renders correctly
 - [ ] Visual spot-check of modified slides
 
-When using remote compilation, keep the GitHub fork as the development remote and add USTC LaTeX as a second remote instead of replacing `origin`.
+When using remote compilation, keep the primary development remote unchanged and add USTC LaTeX as a second remote instead of replacing it. Use lazy dependency handling: do not pre-check or auto-install tools, try the task first, and only suggest installation after an actual missing-tool failure.

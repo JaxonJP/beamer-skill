@@ -95,15 +95,14 @@ Start at 100. Critical: compilation failure (-100), equation overflow (-20), Tik
 
 ## Compilation
 
-Default host: `https://latex.ustc.edu.cn`. Keep the GitHub fork as `origin`, add the platform as a second remote (for example `ustc-latex`), and ask the user for the platform Git URL and token if missing.
+Default host: `https://latex.ustc.edu.cn`. Keep the main development remote unchanged, add the platform as a second remote (for example `ustc-latex`), and ask the user for the platform Git URL and token if missing. Use lazy dependency handling: do not pre-check tools, try the task first, and only suggest installation after an actual missing-tool failure.
 
 ```bash
 git remote add ustc-latex <USTC_PROJECT_GIT_URL>
-git push origin HEAD
 git push ustc-latex HEAD
 ```
 
-Do not replace the user's fork remote, and do not use `git push --force` / `git pull --force`. Confirm the project compiler is **XeLaTeX** on the platform.
+Do not replace the primary development remote, and do not use `git push --force` / `git pull --force`. Confirm the project compiler is **XeLaTeX** on the platform.
 
 ## Verification Protocol
 

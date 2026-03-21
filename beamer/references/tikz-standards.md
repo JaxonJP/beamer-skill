@@ -194,3 +194,10 @@ for i in $(seq 1 $PAGES); do
   pdf2svg extract_tikz.pdf tikz_exact_$idx.svg $i
 done
 ```
+
+For SVG export, prefer any available local PDF-to-SVG tool.
+
+Try in this order:
+1. `pdf2svg`
+2. `pdftocairo -svg`
+3. if neither is available, report that SVG export could not be completed and continue without blocking the rest of the review

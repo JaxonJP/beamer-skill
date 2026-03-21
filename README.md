@@ -41,15 +41,34 @@ Full lifecycle: **create → sync/compile → review → polish → verify.**
 
 ## Prerequisites
 
-### Git + USTC LaTeX Access
+### Core workflow
 
-No local TeX distribution is required. The default workflow is:
+This skill is designed for:
 
-1. Write `.tex`/`.bib`/figures locally in your **GitHub fork**.
-2. Keep your fork as the development remote (typically `origin`).
-3. Add the platform project as a **second** Git remote, e.g. `ustc-latex`.
-4. Push the same commit to **USTC LaTeX** (`https://latex.ustc.edu.cn` by default).
-5. Let the platform compile with **XeLaTeX** and inspect the remote PDF/log there.
+- local Beamer authoring
+- local PDF analysis (papers, figures, tables, structure)
+- remote XeLaTeX compilation on USTC LaTeX or another Overleaf-compatible platform
+
+No local TeX distribution is required for the default workflow.
+
+### Assumed local environment
+
+The skill assumes common local helper tools are already available when needed.
+It does **not** proactively install dependencies before running.
+
+If a local helper tool is missing, the skill should:
+
+1. continue with the best available fallback when possible
+2. otherwise report the missing dependency clearly
+3. suggest an installation command only after the failure is observed
+
+### Git workflow
+
+Recommended setup:
+
+- keep your main development repository as the primary Git remote (`origin`)
+- add the LaTeX platform project as a second remote, e.g. `ustc-latex`
+- push to the platform remote when you want remote compilation
 
 You only need:
 
@@ -60,13 +79,27 @@ You only need:
 Recommended remote setup (replace placeholders with the Git URL copied from the platform):
 
 ```bash
-# assume your GitHub fork is already configured as origin
 git remote add ustc-latex <USTC_PROJECT_GIT_URL>
-git push origin HEAD
 git push ustc-latex HEAD
 ```
 
-> Keep GitHub and USTC LaTeX as separate remotes. The platform's Git page provides the exact project URL and token workflow. Avoid `git push --force` / `git pull --force`; if the remote repository gets out of sync, re-clone instead.
+> GitHub is optional, not required. Any primary Git remote is acceptable. Keep the platform as a separate remote. Avoid `git push --force` / `git pull --force`; if the remote repository gets out of sync, re-clone instead.
+
+### Dependency policy
+
+This skill assumes common local helper tools are already installed.
+
+It does not proactively check or install dependencies before use.
+
+Instead, it uses lazy dependency handling:
+
+- try the requested operation first
+- if it works, continue normally
+- if it fails because a local tool is missing, report the missing dependency
+- if a fallback exists, use the fallback
+- otherwise suggest an installation command after the failure is observed
+
+This keeps the default workflow lightweight while still supporting richer local PDF analysis when the corresponding tools are available.
 
 ### pdf-mcp (Recommended)
 
@@ -90,7 +123,7 @@ This enables the `create` action to analyze research papers and `extract-figures
 Clone the repo first:
 
 ```bash
-git clone https://github.com/Noi1r/beamer-skill.git
+git clone https://github.com/JaxonJP/beamer-skill.git
 ```
 
 ### Claude Code
@@ -177,7 +210,7 @@ Once installed, the skill is triggered automatically when you mention beamer, sl
 ### Default Authoring Workflow
 
 1. Draft slides locally with your AI assistant.
-2. Keep figures, bibliography, and sources in the same Git repo and submit changes to your GitHub fork as usual.
+2. Keep figures, bibliography, and sources in the same Git repo.
 3. Add `ustc-latex` as a second remote for the online platform.
 4. Ask the assistant to run `compile [file]` — this means **sync the current commit to USTC LaTeX**, not run local XeLaTeX.
 5. Provide the platform Git URL and token when needed.

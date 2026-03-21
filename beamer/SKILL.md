@@ -104,34 +104,54 @@ When creating new slides, use this as the default preamble unless the user has a
 
 ---
 
+## LOCAL DEPENDENCY POLICY
+
+Assume common local helper tools are available by default.
+
+Do NOT proactively check or install dependencies before running a task.
+
+Use lazy dependency handling instead:
+
+1. Attempt the requested operation first.
+2. If it succeeds, continue normally.
+3. If it fails because a local dependency is missing, identify the exact missing tool or module.
+4. If a fallback path exists, use the fallback and continue.
+5. Otherwise, report the missing dependency clearly and suggest an installation command.
+
+Optional helper tools must not block the main workflow when a reasonable fallback exists.
+
+The main workflow is:
+- local Beamer authoring
+- local PDF understanding
+- remote LaTeX compilation
+
 ## 2. ACTIONS
 
 Parse `$ARGUMENTS` to determine which action to run. If no action specified, ask.
 
 ### 2.1 `compile [file]`
 
-Default workflow: keep the user's **GitHub fork** as the source repo, add **USTC LaTeX** (`https://latex.ustc.edu.cn`) as a second remote, and let the platform perform the XeLaTeX build. If the user does not specify another host, assume USTC LaTeX.
+Default workflow: keep the user's primary development remote unchanged, add **USTC LaTeX** (`https://latex.ustc.edu.cn`) as a second remote, and let the platform perform the XeLaTeX build. If the user does not specify another host, assume USTC LaTeX.
+
+This action means **Git sync + remote platform compilation**, not local TeX compilation.
 
 ```bash
 # once per local repo
-# keep the GitHub fork as origin
 git remote add ustc-latex <USTC_PROJECT_GIT_URL>
 
-# for each update (push the current commit to both remotes as needed)
-git push origin HEAD
+# for each update
 git push ustc-latex HEAD
 ```
 
 Rules:
-- Treat GitHub and USTC LaTeX as separate remotes; do not replace the user's fork remote.
+- Keep the user's primary development remote unchanged; add USTC LaTeX as a second remote.
 - Ask for the project Git URL and Git token if missing.
-- Never require local TeX installation.
+- Do not require local XeLaTeX. Only suggest local installation if the user explicitly wants local compilation.
 - Do not use `git push --force` / `git pull --force`. If the remote Git state is broken, re-clone.
 - Tell the user to confirm the project compiler is **XeLaTeX** on the platform.
 
 Post-sync checks:
 - Confirm push succeeded
-- Keep the user informed whether GitHub fork push and USTC push both succeeded
 - Ask the user to inspect the remote compile log/PDF on the platform, or provide the exported PDF/log for diagnosis
 - If a PDF is available locally, open it for visual verification
 - Report: sync success/failure, remote compile status (if known), and next action
@@ -145,6 +165,7 @@ Post-sync checks:
 **Read first, ask later.** Must understand the content before asking meaningful questions.
 
 - Read the full paper/materials thoroughly
+- Prioritize local PDF analysis before slide drafting when source PDFs are provided
 - Extract: core contribution, key techniques, main theorems, comparison with prior work
 - Map notation conventions
 - Identify the paper's logical structure and which parts are slide-worthy
@@ -797,7 +818,7 @@ Challenge slide design with 5-7 specific pedagogical questions.
 
 1. **Obtain the latest compiled PDF** from the remote platform (download it from USTC LaTeX if needed).
 
-2. **Convert PDF to images** using PyMuPDF:
+2. **Convert PDF to images** using PyMuPDF when available:
    ```python
    import fitz
    doc = fitz.open('FILE.pdf')
@@ -813,7 +834,10 @@ Challenge slide design with 5-7 specific pedagogical questions.
    ```
    Or via bash: `python3 -c "import fitz; ..."`
 
-   **Fallback** (if PyMuPDF unavailable): Use the Read tool directly on the PDF — Claude Code is multimodal and can read PDF files page by page.
+   If PyMuPDF is missing or fails to import:
+   - do not stop immediately
+   - fall back to direct PDF reading if supported by the environment
+   - if no fallback is available, report that PyMuPDF is missing and suggest installation
 
 3. **Systematic per-slide inspection** — use Read tool to view each image, checking:
    - [ ] No text overflow at any edge (top, bottom, left, right)
@@ -840,16 +864,21 @@ Challenge slide design with 5-7 specific pedagogical questions.
 **Checks performed:**
 
 1. **Slide count vs. duration** (if duration provided):
-   ```bash
-   # Get page count
-   pdfinfo FILE.pdf | grep "Pages:"
-   ```
+   - Prefer `pdfinfo` for page count checks:
+     ```bash
+     pdfinfo FILE.pdf | grep "Pages:"
+     ```
+   - If `pdfinfo` is unavailable, fall back to any available PDF metadata source.
+   - Otherwise skip automated page-count checks and report that they were not performed.
    Compare against timing allocation table (Section 2.2, Phase 1). Flag if outside recommended range.
 
 2. **Aspect ratio**:
-   ```bash
-   pdfinfo FILE.pdf | grep "Page size:"
-   ```
+   - Prefer `pdfinfo` for page size checks:
+     ```bash
+     pdfinfo FILE.pdf | grep "Page size:"
+     ```
+   - If `pdfinfo` is unavailable, fall back to any available PDF metadata source.
+   - Otherwise skip automated page-size checks and report that they were not performed.
    Expected: 364.19 x 272.65 pts (16:9 at 10pt) or similar 16:9 ratio. Flag if 4:3 (old projector format).
 
 3. **File size**:
@@ -897,6 +926,7 @@ Use when the user wants to reuse figures from an existing paper (their own or a 
 #### Workflow
 
 1. **Identify target figures** — if user doesn't specify pages, use `mcp__pdf-mcp__pdf_get_toc` and `mcp__pdf-mcp__pdf_read_pages` to locate figures in the paper. Ask user which figures to extract if ambiguous.
+   Prioritize local PDF analysis first: extract figures, tables, structure, notation, and key claims from the paper before slide drafting.
 
 2. **Extract images** from specified pages:
    ```
