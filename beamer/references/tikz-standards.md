@@ -153,7 +153,7 @@ For complex diagrams (≥ 5 nodes or plotted curves):
 │   Step 2: Check for issues — overlaps, misalignments, inconsistent semantics
 │   Step 3: Classify — CRITICAL / MAJOR / MINOR
 │   Step 4: Fix all CRITICAL and MAJOR
-│   Step 5: Re-compile and visually verify in PDF
+│   Step 5: Re-sync, re-compile remotely, and visually verify in PDF
 └── If CRITICAL or MAJOR remain and round < 3: loop back
     If all clear or round = 3: declare verdict
 ```
@@ -187,10 +187,17 @@ For complex diagrams (≥ 5 nodes or plotted curves):
 ## SVG Extraction
 
 ```bash
-xelatex -interaction=nonstopmode extract_tikz.tex
+# Compile extract_tikz.tex on USTC LaTeX (or another Overleaf-compatible remote), then download extract_tikz.pdf
 PAGES=$(pdfinfo extract_tikz.pdf | grep "Pages:" | awk '{print $2}')
 for i in $(seq 1 $PAGES); do
   idx=$(printf "%02d" $((i-1)))
   pdf2svg extract_tikz.pdf tikz_exact_$idx.svg $i
 done
 ```
+
+For SVG export, prefer any available local PDF-to-SVG tool.
+
+Try in this order:
+1. `pdf2svg`
+2. `pdftocairo -svg`
+3. if neither is available, report that SVG export could not be completed and continue without blocking the rest of the review

@@ -1,17 +1,17 @@
 # Beamer Skill
 
-An AI coding assistant skill for creating, compiling, reviewing, and polishing academic **Beamer LaTeX** presentations.
+An AI coding assistant skill for creating, syncing, reviewing, and polishing academic **Beamer LaTeX** presentations for USTC LaTeX and other Overleaf-compatible platforms.
 
 Supports **Claude Code**, **OpenAI Codex CLI**, **Google Antigravity**, and **VS Code** AI extensions (Copilot, Cline, Cursor).
 
-Full lifecycle: **create → compile → review → polish → verify.**
+Full lifecycle: **create → sync/compile → review → polish → verify.**
 
 ## Features
 
 | Action | Description |
 |--------|-------------|
 | `create [topic]` | Collaborative, iterative lecture creation with phase gates (material analysis → needs interview → structure plan → draft → quality loop) |
-| `compile [file]` | 3-pass XeLaTeX + bibtex with post-compile diagnostics |
+| `compile [file]` | Git sync to USTC LaTeX (default `https://latex.ustc.edu.cn`) plus remote compile diagnostics |
 | `review [file]` | Read-only proofreading report (grammar, typos, overflow, consistency, academic quality) |
 | `audit [file]` | Visual layout audit (overflow, fonts, boxes, spacing) |
 | `pedagogy [file]` | Holistic pedagogical review with 13 validation patterns |
@@ -36,24 +36,70 @@ Full lifecycle: **create → compile → review → polish → verify.**
 - **Columns & layout rules** — enforced `columns[T]` patterns with gap/width constraints
 - **Backup slides** — automatic appendix section for anticipated Q&A
 - **Algorithm & code support** — `algorithm2e`, `listings`, `pgfplots` integration with per-slide line limits
-- **XeLaTeX only** — modern font handling, 16:9 aspect ratio, 10pt default
+- **Remote-first compilation** — write locally, push by Git, compile on USTC LaTeX (default `https://latex.ustc.edu.cn`)
+- **XeLaTeX on platform** — modern font handling, 16:9 aspect ratio, 10pt default
 
 ## Prerequisites
 
-### TeX Distribution
+### Core workflow
 
-A full TeX distribution with XeLaTeX is required:
+This skill is designed for:
+
+- local Beamer authoring
+- local PDF analysis (papers, figures, tables, structure)
+- remote XeLaTeX compilation on USTC LaTeX or another Overleaf-compatible platform
+
+No local TeX distribution is required for the default workflow.
+
+### Assumed local environment
+
+The skill assumes common local helper tools are already available when needed.
+It does **not** proactively install dependencies before running.
+
+If a local helper tool is missing, the skill should:
+
+1. continue with the best available fallback when possible
+2. otherwise report the missing dependency clearly
+3. suggest an installation command only after the failure is observed
+
+### Git workflow
+
+Recommended setup:
+
+- keep your main development repository as the primary Git remote (`origin`)
+- add the LaTeX platform project as a second remote, e.g. `ustc-latex`
+- push to the platform remote when you want remote compilation
+
+You only need:
+
+- `git`
+- A USTC LaTeX project with Git enabled
+- A Git token supplied by the user
+
+Recommended remote setup (replace placeholders with the Git URL copied from the platform):
 
 ```bash
-# macOS
-brew install --cask mactex
-
-# Ubuntu/Debian
-sudo apt install texlive-full
-
-# Arch
-sudo pacman -S texlive
+git remote add ustc-latex <USTC_PROJECT_GIT_URL>
+git push ustc-latex HEAD
 ```
+
+> GitHub is optional, not required. Any primary Git remote is acceptable. Keep the platform as a separate remote. Avoid `git push --force` / `git pull --force`; if the remote repository gets out of sync, re-clone instead.
+
+### Dependency policy
+
+This skill assumes common local helper tools are already installed.
+
+It does not proactively check or install dependencies before use.
+
+Instead, it uses lazy dependency handling:
+
+- try the requested operation first
+- if it works, continue normally
+- if it fails because a local tool is missing, report the missing dependency
+- if a fallback exists, use the fallback
+- otherwise suggest an installation command after the failure is observed
+
+This keeps the default workflow lightweight while still supporting richer local PDF analysis when the corresponding tools are available.
 
 ### pdf-mcp (Recommended)
 
@@ -77,7 +123,7 @@ This enables the `create` action to analyze research papers and `extract-figures
 Clone the repo first:
 
 ```bash
-git clone https://github.com/Noi1r/beamer-skill.git
+git clone https://github.com/JaxonJP/beamer-skill.git
 ```
 
 ### Claude Code
@@ -161,6 +207,16 @@ Cursor automatically loads `.mdc` files from `.cursor/rules/`. The `globs` field
 
 Once installed, the skill is triggered automatically when you mention beamer, slides, lecture, tikz, or related keywords.
 
+### Default Authoring Workflow
+
+1. Draft slides locally with your AI assistant.
+2. Keep figures, bibliography, and sources in the same Git repo.
+3. Add `ustc-latex` as a second remote for the online platform.
+4. Ask the assistant to run `compile [file]` — this means **sync the current commit to USTC LaTeX**, not run local XeLaTeX.
+5. Provide the platform Git URL and token when needed.
+6. Open `https://latex.ustc.edu.cn` to inspect the remote PDF, compile log, and compiler settings (use **XeLaTeX** unless you explicitly need another engine).
+
+
 **Create a lecture from a paper:**
 ```
 Help me create a beamer presentation based on this paper: /path/to/paper.pdf
@@ -171,9 +227,11 @@ Help me create a beamer presentation based on this paper: /path/to/paper.pdf
 Extract figures from /path/to/paper.pdf for my slides
 ```
 
-**Compile slides:**
+**Sync and compile on USTC LaTeX:**
 ```
 Compile my slides: /path/to/slides.tex
+# default remote host: https://latex.ustc.edu.cn
+# I will provide the Git token and project Git URL
 ```
 
 **Full quality check:**
@@ -214,7 +272,7 @@ The `example/` directory contains real-world examples generated entirely by this
 | `slides` | TWIST1⁺ FAP⁺ fibroblasts in Crohn's disease | Basic research (with extracted figures) |
 | `slides_EP` | Endoscopic papillectomy outcomes | Clinical retrospective study |
 
-Each example includes the source paper (PDF), the generated `.tex`, and the compiled `.pdf`. The `figures/` directory contains images extracted from the source papers via `extract-figures`.
+Each example includes the source paper (PDF), the generated `.tex`, and a compiled `.pdf` artifact. In the default workflow, new decks are authored locally and compiled remotely on USTC LaTeX after Git sync. The `figures/` directory contains images extracted from the source papers via `extract-figures`.
 
 ## Benchmark: With Skill vs. Without Skill
 

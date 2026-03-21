@@ -1,7 +1,7 @@
 # Beamer Slide Workflow
 
 Universal skill for academic Beamer presentations. Full lifecycle:
-**create → compile → review → polish → verify.**
+**create → sync/compile → review → polish → verify.**
 
 > This file is for OpenAI Codex CLI. For Claude Code, use `SKILL.md` instead.
 > Detailed rules for each section are in the `references/` subdirectory — read them when executing the corresponding action.
@@ -61,9 +61,9 @@ When creating new slides, use this as the default preamble unless the user has a
 2. **Max 2 colored boxes per slide** — more dilutes emphasis.
 3. **Motivation before formalism** — every concept starts with "Why?" before "What?".
 4. **Worked example within 2 slides** of every definition.
-5. **XeLaTeX only** — never pdflatex.
+5. **XeLaTeX on the platform** — prefer XeLaTeX, never pdflatex.
 6. **Beamer .tex is the single source of truth** — TikZ diagrams, content, notation all originate here.
-7. **Verify after every task** — compile, check warnings, open PDF.
+7. **Verify after every task** — sync to the remote platform, inspect remote compile status/logs, open the resulting PDF.
 8. **Telegraphic style** — keyword phrases, not full sentences. Slides are speaker prompts, not manuscripts.
 9. **Every slide earns its place** — each slide must contain at least one substantive element (formula, diagram, table, theorem, or algorithm). A slide with only 3 short bullets must be merged or enriched.
 10. **Box-interior overflow guard** — `alertblock`, `exampleblock`, and `block` add internal padding (~15% less width, ~12-16pt extra height). Content that fits on a bare slide can overflow inside a box. Rules:
@@ -82,27 +82,57 @@ When creating new slides, use this as the default preamble unless the user has a
 
 ---
 
+## LOCAL DEPENDENCY POLICY
+
+Assume common local helper tools are available by default.
+
+Do NOT proactively check or install dependencies before running a task.
+
+Use lazy dependency handling instead:
+
+1. Attempt the requested operation first.
+2. If it succeeds, continue normally.
+3. If it fails because a local dependency is missing, identify the exact missing tool or module.
+4. If a fallback path exists, use the fallback and continue.
+5. Otherwise, report the missing dependency clearly and suggest an installation command.
+
+Optional helper tools must not block the main workflow when a reasonable fallback exists.
+
+The main workflow is:
+- local Beamer authoring
+- local PDF understanding
+- remote LaTeX compilation
+
 ## 2. ACTIONS
 
 Parse the user's request to determine which action to run. If no action specified, ask.
 
 ### 2.1 `compile [file]`
 
-3-pass XeLaTeX + bibtex for full citation resolution.
+Default workflow: keep the user's primary development remote unchanged, add **USTC LaTeX** (`https://latex.ustc.edu.cn`) as a second remote, and let the platform perform the XeLaTeX build. If the user does not specify another host, assume USTC LaTeX.
+
+This action means **Git sync + remote platform compilation**, not local TeX compilation.
 
 ```bash
-xelatex -interaction=nonstopmode FILE.tex
-bibtex FILE
-xelatex -interaction=nonstopmode FILE.tex
-xelatex -interaction=nonstopmode FILE.tex
+# once per local repo
+git remote add ustc-latex <USTC_PROJECT_GIT_URL>
+
+# for each update
+git push ustc-latex HEAD
 ```
 
-Post-compile checks:
-- Grep log for `Overfull \\hbox` warnings (count and locations)
-- Grep for `Undefined control sequence` or `undefined citations`
-- Grep for `Label(s) may have changed`
-- Open PDF for visual verification
-- Report: success/failure, overfull count, undefined items, page count
+Rules:
+- Keep the user's primary development remote unchanged; add USTC LaTeX as a second remote.
+- Ask for the project Git URL and Git token if missing.
+- Do not require local XeLaTeX. Only suggest local installation if the user explicitly wants local compilation.
+- Do not use `git push --force` / `git pull --force`. If the remote Git state is broken, re-clone.
+- Tell the user to confirm the project compiler is **XeLaTeX** on the platform.
+
+Post-sync checks:
+- Confirm push succeeded
+- Ask the user to inspect the remote compile log/PDF on the platform, or provide the exported PDF/log for diagnosis
+- If a PDF is available locally, open it for visual verification
+- Report: sync success/failure, remote compile status (if known), and next action
 
 ### 2.2 `create [topic]`
 
@@ -116,7 +146,7 @@ See `references/create-workflow.md` for the complete Phase 0-5 workflow, includi
 - Phase 2: Structure plan (detailed outline, user approval gate)
 - Phase 3: Draft (writing style, math patterns, density constraints, batch workflow)
 - Phase 4: Figures (TikZ, data visualization, pgfplots)
-- Phase 5: Quality loop (compile → self-review → score → fix, iterative)
+- Phase 5: Quality loop (remote sync/compile → self-review → score → fix, iterative)
 
 **Key constraints during creation:**
 - Slide count heuristic: ~1 slide per 1.5-2 min
@@ -187,7 +217,7 @@ Challenge slide design with 5-7 specific pedagogical questions across categories
 
 ### 2.9 `visual-check [file]`
 
-PDF-based visual verification. Convert compiled PDF to images, then inspect each slide for: text overflow, box-interior overflow, legibility, table/equation fit, TikZ label overlaps, font consistency, contrast, visual clutter.
+PDF-based visual verification. Download the PDF compiled on the remote platform (USTC LaTeX by default), then inspect each slide for: text overflow, box-interior overflow, legibility, table/equation fit, TikZ label overlaps, font consistency, contrast, visual clutter.
 
 ### 2.10 `validate [file] [duration]`
 
@@ -239,7 +269,7 @@ Start at 100. Deduct per issue:
 **Every task ends with verification.** Non-negotiable.
 
 ```
-[ ] Compiled without errors (xelatex exit code 0)
+[ ] Remote platform compilation completed without errors
 [ ] No overfull hbox > 10pt
 [ ] All citations resolve
 [ ] PDF opens and renders correctly

@@ -135,15 +135,19 @@ Automated quantitative validation. Checks measurable properties without reading 
 ### Checks Performed
 
 1. **Slide count vs. duration** (if duration provided):
+   Prefer:
    ```bash
    pdfinfo FILE.pdf | grep "Pages:"
    ```
+   If `pdfinfo` is unavailable, fall back to any available PDF metadata source. Otherwise skip the automated page-count check and report that it was not performed.
    Compare against timing allocation table. Flag if outside recommended range.
 
 2. **Aspect ratio**:
+   Prefer:
    ```bash
    pdfinfo FILE.pdf | grep "Page size:"
    ```
+   If `pdfinfo` is unavailable, fall back to any available PDF metadata source. Otherwise skip the automated page-size check and report that it was not performed.
    Expected: 364.19 x 272.65 pts (16:9 at 10pt) or similar 16:9 ratio.
 
 3. **File size**: > 50 MB = warning, > 100 MB = critical.
@@ -189,12 +193,9 @@ PDF-based visual verification. Converts compiled PDF to images, then reviews eac
 
 ### Workflow
 
-1. **Compile** (if not already compiled):
-   ```bash
-   xelatex -interaction=nonstopmode FILE.tex
-   ```
+1. **Obtain the latest compiled PDF** from the remote platform (USTC LaTeX by default).
 
-2. **Convert PDF to images** using PyMuPDF:
+2. **Convert PDF to images** using PyMuPDF when available:
    ```python
    import fitz
    doc = fitz.open('FILE.pdf')
@@ -206,7 +207,10 @@ PDF-based visual verification. Converts compiled PDF to images, then reviews eac
        pixmap.save(f'/tmp/slide-{i+1:03d}.jpg', output='jpeg')
    doc.close()
    ```
-   **Fallback** (if PyMuPDF unavailable): Read the PDF directly page by page.
+   If PyMuPDF is missing or fails to import:
+   - do not stop immediately
+   - fall back to direct PDF reading if supported by the environment
+   - if no fallback is available, report that PyMuPDF is missing and suggest installation
 
 3. **Per-slide inspection** checklist:
    - [ ] No text overflow at any edge
