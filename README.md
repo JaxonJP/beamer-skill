@@ -1,17 +1,34 @@
 # Beamer Skill
 
-An AI coding assistant skill for creating, syncing, reviewing, and polishing academic **Beamer LaTeX** presentations for USTC LaTeX and other Overleaf-compatible platforms.
+
+An AI coding assistant skill for creating, compiling, syncing, reviewing, and polishing academic **Beamer LaTeX** presentations for USTC LaTeX and other Overleaf-compatible platforms.
+
+Maintained by **USTC_Jaxon-JP(最闲的下饭菜)**.
+
+This repository is a concise derivative of [Noi1r/beamer-skill](https://github.com/Noi1r/beamer-skill), with substantive extensions in workflow design, PDF/Python tooling choices, multi-environment packaging, compilation branching, and platform integration.
 
 Supports **Claude Code**, **OpenAI Codex CLI**, **Google Antigravity**, and **VS Code** AI extensions (Copilot, Cline, Cursor).
 
 Full lifecycle: **create → sync/compile → review → polish → verify.**
+
+## Recommended Usage
+
+This derivative is primarily recommended for **OpenCode**. For best results, use an advanced multimodal model such as a GPT-class model; among Chinese domestic model options, **Kimi** is currently recommended for this workflow.
+
+The suggested setup is to clone this repository locally and install the `beamer/` directory as an OpenCode global skill. This setup step can be delegated to an AI coding assistant.
+
+Typical global skill target:
+
+```text
+~/.config/opencode/skills/beamer
+```
 
 ## Features
 
 | Action | Description |
 |--------|-------------|
 | `create [topic]` | Collaborative, iterative lecture creation with phase gates (material analysis → needs interview → structure plan → draft → quality loop) |
-| `compile [file]` | Git sync to USTC LaTeX (default `https://latex.ustc.edu.cn`) plus remote compile diagnostics |
+| `compile [file]` | Prefer local XeLaTeX compilation when available; otherwise ask whether to install local TeX dependencies or sync to USTC LaTeX (default `https://latex.ustc.edu.cn`) for remote compile diagnostics |
 | `review [file]` | Read-only proofreading report (grammar, typos, overflow, consistency, academic quality) |
 | `audit [file]` | Visual layout audit (overflow, fonts, boxes, spacing) |
 | `pedagogy [file]` | Holistic pedagogical review with 13 validation patterns |
@@ -36,8 +53,8 @@ Full lifecycle: **create → sync/compile → review → polish → verify.**
 - **Columns & layout rules** — enforced `columns[T]` patterns with gap/width constraints
 - **Backup slides** — automatic appendix section for anticipated Q&A
 - **Algorithm & code support** — `algorithm2e`, `listings`, `pgfplots` integration with per-slide line limits
-- **Remote-first compilation** — write locally, push by Git, compile on USTC LaTeX (default `https://latex.ustc.edu.cn`)
-- **XeLaTeX on platform** — modern font handling, 16:9 aspect ratio, 10pt default
+- **Dual-path compilation** — compile locally when a working TeX environment exists; otherwise fall back to USTC LaTeX remote compilation
+- **XeLaTeX on platform** — after push, remind the user to enable **XeLaTeX** (sometimes shown as `xelatex` / `xlatex` mode)
 
 ## Prerequisites
 
@@ -47,9 +64,10 @@ This skill is designed for:
 
 - local Beamer authoring
 - local PDF analysis (papers, figures, tables, structure)
+- local XeLaTeX compilation when a working TeX environment is available
 - remote XeLaTeX compilation on USTC LaTeX or another Overleaf-compatible platform
 
-No local TeX distribution is required for the default workflow.
+A local TeX distribution is optional but preferred for fast feedback. If it is unavailable, the assistant should ask whether to install local TeX dependencies or go straight to the remote platform.
 
 ### Assumed local environment
 
@@ -74,32 +92,31 @@ You only need:
 
 - `git`
 - A USTC LaTeX project with Git enabled
+- The project Git address copied from the platform, commonly shown as:
+  `git clone https://git@latex.ustc.edu.cn/git/****************`
 - A Git token supplied by the user
 
 Recommended remote setup (replace placeholders with the Git URL copied from the platform):
 
 ```bash
-git remote add ustc-latex <USTC_PROJECT_GIT_URL>
+git remote add ustc-latex https://git@latex.ustc.edu.cn/git/****************
 git push ustc-latex HEAD
 ```
+
+If the user provides the full `git clone ...` command copied from USTC LaTeX, extract the URL part before running `git remote add`.
 
 > GitHub is optional, not required. Any primary Git remote is acceptable. Keep the platform as a separate remote. Avoid `git push --force` / `git pull --force`; if the remote repository gets out of sync, re-clone instead.
 
 ### Dependency policy
 
-This skill assumes common local helper tools are already installed.
+This skill keeps lazy dependency handling for most helper tools, but compilation has a dedicated branch:
 
-It does not proactively check or install dependencies before use.
+- first check whether a working local TeX environment is available (`latexmk`, `xelatex`, or equivalent)
+- if local compilation works, use it for fast feedback
+- if local compilation tools are missing, ask the user whether to install the missing dependencies or go directly to USTC LaTeX remote compilation
+- for non-compilation helper tools, continue using lazy dependency handling and only suggest installation after an actual missing-tool failure
 
-Instead, it uses lazy dependency handling:
-
-- try the requested operation first
-- if it works, continue normally
-- if it fails because a local tool is missing, report the missing dependency
-- if a fallback exists, use the fallback
-- otherwise suggest an installation command after the failure is observed
-
-This keeps the default workflow lightweight while still supporting richer local PDF analysis when the corresponding tools are available.
+This keeps the workflow lightweight while still preferring local compile feedback when the environment already supports it.
 
 ### pdf-mcp (Recommended)
 
@@ -211,10 +228,11 @@ Once installed, the skill is triggered automatically when you mention beamer, sl
 
 1. Draft slides locally with your AI assistant.
 2. Keep figures, bibliography, and sources in the same Git repo.
-3. Add `ustc-latex` as a second remote for the online platform.
-4. Ask the assistant to run `compile [file]` — this means **sync the current commit to USTC LaTeX**, not run local XeLaTeX.
-5. Provide the platform Git URL and token when needed.
-6. Open `https://latex.ustc.edu.cn` to inspect the remote PDF, compile log, and compiler settings (use **XeLaTeX** unless you explicitly need another engine).
+3. Check whether local TeX compilation is available; if yes, compile locally first.
+4. If local TeX is unavailable, ask whether to install local dependencies or use USTC LaTeX remote compilation directly.
+5. After the current local Beamer version is written, immediately add `ustc-latex` as a second remote and push the latest deck to the platform.
+6. Provide the platform project Git address when needed, commonly copied as `git clone https://git@latex.ustc.edu.cn/git/****************`.
+7. Open `https://latex.ustc.edu.cn` to inspect the remote PDF and compile log, and enable **XeLaTeX** if the platform is not already in `xelatex` / `xlatex` mode.
 
 
 **Create a lecture from a paper:**
@@ -227,11 +245,13 @@ Help me create a beamer presentation based on this paper: /path/to/paper.pdf
 Extract figures from /path/to/paper.pdf for my slides
 ```
 
-**Sync and compile on USTC LaTeX:**
+**Local-first or USTC compile:**
 ```
 Compile my slides: /path/to/slides.tex
-# default remote host: https://latex.ustc.edu.cn
-# I will provide the Git token and project Git URL
+# first try local XeLaTeX if available
+# otherwise use the USTC LaTeX project address copied from the platform
+# e.g. git clone https://git@latex.ustc.edu.cn/git/****************
+# after push, enable XeLaTeX / xelatex / xlatex mode on the platform
 ```
 
 **Full quality check:**
@@ -250,8 +270,8 @@ Proofread /path/to/slides.tex
 
 The skill defaults to:
 ```latex
-\author{Presenter: [name]}
-\institute{Shanghai Jiao Tong University}
+\author{USTC_Jaxon-JP(最闲的下饭菜)}
+\institute{University of Science and Technology of China}
 ```
 
 To change this, either:
