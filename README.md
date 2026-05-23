@@ -1,5 +1,6 @@
 # Beamer Skill
 
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 An AI coding assistant skill for creating, compiling, syncing, reviewing, and polishing academic **Beamer LaTeX** presentations for USTC LaTeX and other Overleaf-compatible platforms.
 
@@ -23,6 +24,13 @@ Typical global skill target:
 ~/.config/opencode/skills/beamer
 ```
 
+### Example Prompt
+
+The skill is often used with Chinese paper-reading prompts. Example:
+
+```text
+使用 beamer-skill 对 "C:\Users\server02\Desktop\2502.15260v2.pdf" 做一个论文讲解性质的 beamer，要求把架构和技术细节讲清楚（幻灯片页数不限制，适当加入论文关键图片，讲解要图文并茂，不过要注意图片比例不要有过界的情况，文字不要过于精简，不是面向汇报的那种幻灯片），观看对象是一个业内有一点知识储备的研究生。
+```
 ## Features
 
 | Action | Description |

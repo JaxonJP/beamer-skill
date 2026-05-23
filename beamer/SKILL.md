@@ -53,7 +53,7 @@ When creating new slides, use this as the default preamble unless the user has a
 **Rules:**
 - **Always `10pt`** — `11pt` or `12pt` produces oversized, sparse slides.
 - **Always `aspectratio=169`** — modern projectors are 16:9.
-- **Default presenter**: `\author{Presenter: [name]}` and `\institute{Shanghai Jiao Tong University}`. Override only if user specifies otherwise.
+- **Default presenter**: `\author{USTC_Jaxon-JP(最闲的下饭菜)}` and `\institute{University of Science and Technology of China}`. Override only if user specifies otherwise.
 - If user provides a custom preamble, header file, or theme: use theirs.
 - Add domain-specific macros (e.g. `\newcommand{\F}{\mathbb{F}}`) as needed.
 - **Algorithm/code packages** (add only when needed):
@@ -108,15 +108,17 @@ When creating new slides, use this as the default preamble unless the user has a
 
 Assume common local helper tools are available by default.
 
-Do NOT proactively check or install dependencies before running a task.
+General rule: do NOT proactively install dependencies before running a task.
 
-Use lazy dependency handling instead:
+Use dependency handling as follows:
 
-1. Attempt the requested operation first.
-2. If it succeeds, continue normally.
-3. If it fails because a local dependency is missing, identify the exact missing tool or module.
-4. If a fallback path exists, use the fallback and continue.
-5. Otherwise, report the missing dependency clearly and suggest an installation command.
+1. For `compile [file]`, first check whether a working local TeX compilation environment is available (`latexmk`, `xelatex`, or equivalent), because the workflow branches on that result.
+2. If local compilation is available, compile locally first.
+3. If local compilation tools are missing, ask the user whether to install the missing local dependencies or go directly to USTC LaTeX remote compilation.
+4. For other helper tools, use lazy dependency handling: attempt the requested operation first.
+5. If it fails because a local dependency is missing, identify the exact missing tool or module.
+6. If a fallback path exists, use the fallback and continue.
+7. Otherwise, report the missing dependency clearly and suggest an installation command.
 
 Optional helper tools must not block the main workflow when a reasonable fallback exists.
 
@@ -131,26 +133,36 @@ Parse `$ARGUMENTS` to determine which action to run. If no action specified, ask
 
 ### 2.1 `compile [file]`
 
-Default workflow: keep the user's primary development remote unchanged, add **USTC LaTeX** (`https://latex.ustc.edu.cn`) as a second remote, and let the platform perform the XeLaTeX build. If the user does not specify another host, assume USTC LaTeX.
+Compilation has two branches:
 
-This action means **Git sync + remote platform compilation**, not local TeX compilation.
+1. **Local-first branch**: check whether a working local TeX compilation environment is available (`latexmk`, `xelatex`, or equivalent). If yes, compile locally first.
+2. **USTC remote branch**: if local compilation tools are unavailable, ask the user whether to install the missing local dependencies or go directly to **USTC LaTeX** (`https://latex.ustc.edu.cn`). If the user does not care, recommend the remote branch.
+
+For the USTC remote branch, keep the user's primary development remote unchanged, add USTC LaTeX as a second remote, and let the platform perform the XeLaTeX build.
 
 ```bash
-# once per local repo
-git remote add ustc-latex <USTC_PROJECT_GIT_URL>
+# project address copied from the platform
+git clone https://git@latex.ustc.edu.cn/git/****************
+
+# add as a second remote locally
+git remote add ustc-latex https://git@latex.ustc.edu.cn/git/****************
 
 # for each update
 git push ustc-latex HEAD
 ```
 
 Rules:
+- Check local compilation availability first.
+- If local TeX tools are missing, ask whether to install local dependencies or use the USTC remote branch.
 - Keep the user's primary development remote unchanged; add USTC LaTeX as a second remote.
-- Ask for the project Git URL and Git token if missing.
-- Do not require local XeLaTeX. Only suggest local installation if the user explicitly wants local compilation.
+- Ask for the project Git URL and Git token if missing. The preferred user-provided format is the full platform copy command: `git clone https://git@latex.ustc.edu.cn/git/****************`.
+- If the user provides the full `git clone ...` command, extract the URL part before running `git remote add`.
+- After the current local Beamer version is written, sync the latest deck to USTC LaTeX immediately.
 - Do not use `git push --force` / `git pull --force`. If the remote Git state is broken, re-clone.
-- Tell the user to confirm the project compiler is **XeLaTeX** on the platform.
+- After push, tell the user to confirm the project compiler is **XeLaTeX** on the platform. Some interfaces may label this as `xelatex` or `xlatex` mode.
 
 Post-sync checks:
+- Confirm local compile status if the local branch was used
 - Confirm push succeeded
 - Ask the user to inspect the remote compile log/PDF on the platform, or provide the exported PDF/log for diagnosis
 - If a PDF is available locally, open it for visual verification
@@ -331,9 +343,10 @@ Every slide must have a clear **takeaway** — the one thing the audience should
 ##### 3d. Batch Workflow
 
 - Work in batches of 5-10 slides, following the approved structure
-- After each batch, **sync to USTC LaTeX and trigger a remote compile** — fixing 2 issues in a 10-slide batch is far cheaper than fixing 12 issues in a 40-slide deck at Phase 5
+- After each batch, if local TeX tools are available, compile locally first for fast feedback
+- Once the current batch is locally written, **sync to USTC LaTeX and trigger a remote compile** — fixing 2 issues in a 10-slide batch is far cheaper than fixing 12 issues in a 40-slide deck at Phase 5
 - After each batch, self-check: notation consistency, density constraints, motivation-before-formalism
-- Continue to next batch only after the current batch syncs cleanly and the remote compile/PDF looks correct
+- Continue to next batch only after local compile (if used) and remote compile/PDF look correct
 
 ##### 3e. Table Best Practices
 

@@ -228,7 +228,7 @@ Always set explicit `width` and `height` to prevent overflow.
 ## Phase 5: Quality Loop (MANDATORY — iterative)
 
 ```
-┌─→ 5a. Sync + Remote Compile (USTC LaTeX)
+┌─→ 5a. Local Compile (if available) → Sync + Remote Compile (USTC LaTeX)
 │   5b. Self-Review (structure + content + visual)
 │   5c. Score (apply rubric)
 │   5d. Fix all issues found
@@ -236,10 +236,14 @@ Always set explicit `width` and `height` to prevent overflow.
     If score ≥ 90 or round = 3: report to user
 ```
 
-### 5a. Remote compilation
+### 5a. Local compile + remote compilation
+- First check whether local TeX tools (`latexmk`, `xelatex`, or equivalent) are available
+- If local compile works, use it for fast feedback before syncing
+- If local TeX tools are missing, ask whether to install them or go directly to USTC LaTeX remote compilation
 - Commit and push the current batch to the platform Git remote
-- Compile on USTC LaTeX with XeLaTeX
-- Check: remote errors, overfull hbox, undefined references, and the rendered PDF
+- The preferred platform project address format is the copy command shown by USTC LaTeX: `git clone https://git@latex.ustc.edu.cn/git/****************`
+- After push, remind the user to enable XeLaTeX on the platform; some UIs may label this as `xelatex` or `xlatex`
+- Check: local compile result (if used), remote errors, overfull hbox, undefined references, and the rendered PDF
 
 ### 5b. Self-Review
 
